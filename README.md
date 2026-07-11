@@ -34,8 +34,8 @@ repository contains the accompanying source files.
   control from any browser.
 
 ## Repository structure
-├── Firmware/         Arduino sketch (clock generation, ADC feedback, Firebase sync)
-├── WebApp/            Web dashboard (HTML/CSS/JS, Chart.js, Firebase client)
-├── PCB/               Altium Designer project, schematic export, Gerber files
-├── Simulation/        LTspice files used for buffer/clock-driver verification
+├── Firmware/         
+├── WebApp/            
+├── PCB/              
+├── Simulation/        
 └── README.md
