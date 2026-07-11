@@ -9,7 +9,7 @@ pump â€” rather than the more common duty-cycle or shunt-regulator approaches â€
 exploiting the well-known relationship between clock frequency and output
 impedance in the Slow Switching Limit (SSL) regime.
 
-This repository accompanies the bachelor's thesis *"Sviluppo ed ottimizzazione su circuito stampato di una pompa di carica di Dickson doppia integrata controllata tramite piattaforma IoT"*
+This repository accompanies the bachelor's thesis *"Sviluppo ed ottimizzazione su circuito stampato di una pompa di carica di Dickson doppia controllata tramite piattaforma IoT"*
 (University of Catania, Department of Electrical, Electronics and Computer
 Engineering, A.Y. 2025/2026). The full theoretical background, design
 rationale, and experimental results are documented in the thesis; this
