@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dickson Pump Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-1: #0f172a;
+      --bg-2: #1e293b;
+      --card: rgba(15, 23, 42, 0.8);
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #22c55e;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(34, 197, 94, 0.12), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.2), transparent 40%),
+        linear-gradient(160deg, var(--bg-1), var(--bg-2));
+      color: var(--text-main);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .glow {
+      box-shadow:
+        0 0 0 1px rgba(148, 163, 184, 0.15),
+        0 16px 44px rgba(2, 6, 23, 0.5),
+        0 0 28px rgba(59, 130, 246, 0.12);
+    }
+
+    .value-pop {
+      text-shadow: 0 0 22px rgba(59, 130, 246, 0.25);
+      letter-spacing: 0.02em;
+    }
+
+    .progress-track {
+      background: rgba(148, 163, 184, 0.18);
+    }
+
+    .progress-bar {
+      transition: width 320ms ease, background-color 320ms ease;
+    }
+
+    .pulse-dot {
+      animation: pulseDot 1.8s infinite;
+    }
+
+    @keyframes pulseDot {
+      0% { transform: scale(1); opacity: 1; }
+      60% { transform: scale(1.35); opacity: 0.35; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-5 md:p-8">
+  <main class="w-full max-w-2xl">
+    <section class="glow rounded-3xl border border-slate-600/30 bg-slate-900/65 backdrop-blur-lg p-6 md:p-10">
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-slate-100 text-xl md:text-2xl font-semibold tracking-wide">Dickson Charge Pump</h1>
+        <div class="inline-flex items-center gap-2 rounded-full border border-slate-500/40 bg-slate-800/70 px-3 py-1.5 text-xs md:text-sm text-slate-200">
+          <span class="pulse-dot inline-block h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+          Realtime
+        </div>
+      </div>
+
+      <p class="mt-2 text-sm md:text-base text-slate-400">Monitor uscita tensione dal nodo <span class="text-slate-200 font-medium">/dickson/voltage</span></p>
+
+      <div class="mt-8 md:mt-10 text-center">
+        <div id="voltageValue" class="value-pop text-6xl md:text-8xl font-black text-slate-100">--.- V</div>
+        <div id="statusText" class="mt-3 text-sm md:text-base text-slate-400">In attesa dati da Firebase...</div>
+      </div>
+
+      <div class="mt-8">
+        <div class="mb-2 flex items-center justify-between text-xs md:text-sm text-slate-400">
+          <span>0.0 V</span>
+          <span>Target max 13.0 V</span>
+          <span>13.0 V</span>
+        </div>
+        <div class="progress-track h-5 w-full overflow-hidden rounded-full">
+          <div id="progressBar" class="progress-bar h-full w-0 bg-slate-500"></div>
+        </div>
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs md:text-sm text-slate-400">
+        <div class="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">Sotto 9.0V</div>
+        <div class="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2">9.0V - 11.0V</div>
+        <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">Oltre 11.0V</div>
+      </div>
+
+      <div class="mt-8 rounded-2xl border border-slate-600/40 bg-slate-950/45 p-4 md:p-5">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-slate-100 text-base md:text-lg font-semibold">Trend Tensione Realtime</h2>
+          <span class="text-xs md:text-sm text-slate-400">Ultimi 30 campioni</span>
+        </div>
+        <div class="mt-4 h-64 md:h-72 w-full">
+          <canvas id="voltageChart"></canvas>
+        </div>
+      </div>
+
+      <div class="mt-6 rounded-2xl border border-slate-600/40 bg-slate-950/45 p-4 md:p-5">
+        <h2 class="text-slate-100 text-base md:text-lg font-semibold">Control Panel</h2>
+        <div class="mt-4">
+          <div class="flex items-center justify-between gap-3 text-sm md:text-base">
+            <label for="frequencySlider" class="text-slate-300">Frequenza Clock</label>
+            <span id="frequencyValue" class="font-semibold text-sky-300">1.00 kHz</span>
+          </div>
+          <input
+            id="frequencySlider"
+            type="range"
+            min="100"
+            max="5000"
+            step="50"
+            value="1000"
+            class="mt-3 w-full accent-sky-400"
+          />
+          <div class="mt-2 flex justify-between text-xs text-slate-400">
+            <span>100</span>
+            <span>5000</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "",
+      authDomain: "",
+      databaseURL: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    const MAX_VOLTAGE = 13.0;
+    const MAX_POINTS = 30;
+
+    const voltageValueEl = document.getElementById("voltageValue");
+    const progressBarEl = document.getElementById("progressBar");
+    const statusTextEl = document.getElementById("statusText");
+    const frequencySliderEl = document.getElementById("frequencySlider");
+    const frequencyValueEl = document.getElementById("frequencyValue");
+
+    const chartCtx = document.getElementById("voltageChart").getContext("2d");
+    const voltageChart = new Chart(chartCtx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Voltage (V)",
+            data: [],
+            borderColor: "#38bdf8",
+            backgroundColor: "rgba(56, 189, 248, 0.2)",
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: "#cbd5e1"
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#94a3b8", maxTicksLimit: 6 },
+            grid: { color: "rgba(148, 163, 184, 0.14)" }
+          },
+          y: {
+            min: 0,
+            max: MAX_VOLTAGE,
+            ticks: { color: "#94a3b8" },
+            grid: { color: "rgba(148, 163, 184, 0.14)" }
+          }
+        }
+      }
+    });
+
+    function getVoltageColor(voltage) {
+      if (voltage < 9) {
+        return {
+          barClass: "bg-red-500",
+          status: "Tensione bassa"
+        };
+      }
+      if (voltage <= 11) {
+        return {
+          barClass: "bg-amber-400",
+          status: "Tensione media"
+        };
+      }
+      return {
+        barClass: "bg-emerald-500",
+        status: "Tensione ottimale"
+      };
+    }
+
+    function updateUI(rawValue) {
+      const voltage = typeof rawValue === "number" ? rawValue : Number(rawValue);
+
+      if (!Number.isFinite(voltage)) {
+        voltageValueEl.textContent = "--.- V";
+        statusTextEl.textContent = "Valore non valido ricevuto dal database";
+        progressBarEl.style.width = "0%";
+        progressBarEl.className = "progress-bar h-full w-0 bg-slate-500";
+        return;
+      }
+
+      const safeVoltage = Math.max(0, voltage);
+      const percentage = Math.min((safeVoltage / MAX_VOLTAGE) * 100, 100);
+      const colorData = getVoltageColor(safeVoltage);
+
+      voltageValueEl.textContent = `${safeVoltage.toFixed(2)} V`;
+      statusTextEl.textContent = `${colorData.status} - ${safeVoltage.toFixed(2)}V`;
+      progressBarEl.style.width = `${percentage.toFixed(1)}%`;
+      progressBarEl.className = `progress-bar h-full ${colorData.barClass}`;
+
+      const now = new Date();
+      const label = now.toLocaleTimeString("it-IT", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+
+      const labels = voltageChart.data.labels;
+      const series = voltageChart.data.datasets[0].data;
+      labels.push(label);
+      series.push(Number(safeVoltage.toFixed(2)));
+
+      if (labels.length > MAX_POINTS) {
+        labels.shift();
+        series.shift();
+      }
+
+      voltageChart.update();
+    }
+
+    function formatFrequencyLabel(frequencyHz) {
+      if (frequencyHz >= 1000) {
+        return `${(frequencyHz / 1000).toFixed(2)} kHz`;
+      }
+      return `${frequencyHz.toFixed(0)} Hz`;
+    }
+
+    function frequencyToHalfPeriodMicros(frequencyHz) {
+      return Math.round(500000 / frequencyHz);
+    }
+
+    function configureFrequencyControl(database) {
+      const halfPeriodRef = ref(database, "/dickson/halfPeriod");
+
+      frequencySliderEl.addEventListener("input", async (event) => {
+        const frequencyHz = Number(event.target.value);
+        frequencyValueEl.textContent = formatFrequencyLabel(frequencyHz);
+        const halfPeriodMicros = frequencyToHalfPeriodMicros(frequencyHz);
+
+        try {
+          await set(halfPeriodRef, halfPeriodMicros);
+        } catch (error) {
+          statusTextEl.textContent = `Errore scrittura frequenza clock: ${error.message}`;
+        }
+      });
+    }
+
+    function startRealtimeSubscription() {
+      const app = initializeApp(firebaseConfig);
+      const database = getDatabase(app);
+      const voltageRef = ref(database, "/dickson/voltage");
+      configureFrequencyControl(database);
+
+      onValue(
+        voltageRef,
+        (snapshot) => {
+          updateUI(snapshot.val());
+        },
+        (error) => {
+          statusTextEl.textContent = `Errore lettura database: ${error.message}`;
+        }
+      );
+    }
+
+    startRealtimeSubscription();
+  </script>
+</body>
+</html>
