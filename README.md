@@ -39,3 +39,43 @@ repository contains the accompanying source files.
 ├── PCB/              
 ├── Simulation/        
 └── README.md
+
+### `Firmware/`
+Arduino sketch for the Nano 33 IoT. Generates the complementary CK / CK_INV
+clock signals with a non-blocking generator based on `micros()`, reads the
+output voltage through the feedback divider, and synchronizes with Firebase
+Realtime Database (voltage readout out, target half-period in).
+
+### `WebApp/`
+Single-page dashboard (Tailwind CSS + Chart.js) that subscribes to the
+output voltage in real time and lets the user set the clock frequency via a
+slider, writing directly to the Firebase database node consumed by the
+firmware.
+
+### `PCB/`
+Altium Designer source project for the two-layer PCB (schematic, layout,
+3D view), plus a PDF export of the schematic for quick reference without
+Altium installed. 
+
+### `Simulation/`
+LTspice netlist used to size the clock buffer's series resistance and
+pumping capacitance, with parametric sweeps on both, and to verify peak/
+average current against the buffer's datasheet limits before finalizing the
+PCB design.
+
+
+## Results
+
+At 1 kHz clock frequency and a 12 kΩ load, the assembled PCB reaches
+**12.4 V** output, closely matching the theoretical SSL model (R_out ≈
+1.5 kΩ) derived and verified in simulation. See Chapter 5 of the thesis for
+the full frequency characterization and the comparison against the
+breadboard prototype.
+
+
+## Author
+
+Andrea Lo Giudice — Bachelor's Thesis in Electronic Engineering,
+University of Catania, A.Y. 2025/2026.
+Supervisor: Prof. Andrea Ballo.
+
